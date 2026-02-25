@@ -66,12 +66,6 @@ void TestBackendLoader::testEnv_data()
     QTest::addColumn<QString>("var");
     QTest::addColumn<QString>("backend");
 
-    // clang-format off
-    QTest::newRow("all lower") << "kwayland" << "KSC_KWayland";
-    QTest::newRow("camel case") << "KWayland" << "KSC_KWayland";
-    QTest::newRow("all upper") << "KWAYLAND" << "KSC_KWayland";
-    QTest::newRow("mixed") << "kwAYlaND" << "KSC_KWayland";
-
     QTest::newRow("mixed") << "fake" << "KSC_Fake";
     // clang-format on
 }
