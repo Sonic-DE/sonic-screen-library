@@ -4,7 +4,6 @@
 
 #include "dpms.h"
 #include "kscreendpms_debug.h"
-#include "waylanddpmshelper_p.h"
 #include "xcbdpmshelper_p.h"
 
 #include <QGuiApplication>
@@ -15,8 +14,6 @@ KScreen::Dpms::Dpms(QObject *parent)
 {
     if (QX11Info::isPlatformX11()) {
         m_helper.reset(new XcbDpmsHelper);
-    } else if (QGuiApplication::platformName().startsWith(QLatin1String("wayland"), Qt::CaseInsensitive)) {
-        m_helper.reset(new WaylandDpmsHelper);
     } else {
         qCWarning(KSCREEN_DPMS) << "dpms unsupported on this system";
         return;
