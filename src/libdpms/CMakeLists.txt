@@ -8,10 +8,6 @@ target_link_libraries(KF6ScreenDpms PUBLIC Qt::Gui
                                             Qt::GuiPrivate
 )
 
-if (Qt6_VERSION VERSION_GREATER_EQUAL "6.8.0")
-    set(private_code_option  "PRIVATE_CODE")
-endif()
-
 set_target_properties(KF6ScreenDpms PROPERTIES
     VERSION "${KSCREEN_VERSION}"
     SOVERSION "${KSCREEN_SOVERSION}"
