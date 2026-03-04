@@ -170,10 +170,14 @@ void SetConfigOperationPrivate::fixPriorities()
     // Here we make sure that among enabled outputs, each
     // priority value is unique
     const auto outputs = config->outputs();
-    auto enabled = outputs | std::views::filter([](const auto &output) {
-                       return output->isEnabled();
-                   })
-        | std::ranges::to<QList>();
+
+    QList<QSharedPointer<Output>> enabled;
+    for (const auto &out : outputs) {
+        if (out->isEnabled()) {
+            enabled.append(out);
+        }
+    }
+
     if (enabled.isEmpty()) {
         return;
     }

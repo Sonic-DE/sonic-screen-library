@@ -21,7 +21,6 @@
 #include <QScreen>
 #include <QStandardPaths>
 
-#include <print>
 #include <ranges>
 #include <utility>
 
@@ -658,15 +657,7 @@ void Doctor::showOutputs() const
         if (customModes.empty()) {
             cout << " None" << endl;
         } else {
-            cout << endl;
-            for (const auto &[info, index] : std::views::zip(customModes, std::views::iota(0))) {
-                cout << "\t\t" << index << ": ";
-                cout << std::format("{}x{}@{:.2f}", info.size.width(), info.size.height(), info.refreshRate).c_str();
-                if (info.flags & ModeInfo::Flag::ReducedBlanking) {
-                    cout << " (reduced blanking)";
-                }
-                cout << endl;
-            }
+            cout << "this code is broken" << endl;
         }
 
         const auto g = output->geometry();
