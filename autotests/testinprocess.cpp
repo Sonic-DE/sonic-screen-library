@@ -43,6 +43,7 @@ private Q_SLOTS:
     void testBackendCaching();
 
     void testConfigApply();
+    void testConfigApplyMissingBackend();
     void testConfigMonitor();
 
 private:
@@ -232,6 +233,22 @@ void TestInProcess::testConfigApply()
     QVERIFY(setop->exec());
 
     QVERIFY(!setop->hasError());
+}
+
+void TestInProcess::testConfigApplyMissingBackend()
+{
+    BackendManager::instance()->setMethod(BackendManager::InProcess);
+    qputenv("KSCREEN_BACKEND", "does-not-exist");
+
+    const ConfigPtr config(new Config);
+    auto setop = new SetConfigOperation(config);
+    QSignalSpy finishedSpy(setop, &ConfigOperation::finished);
+
+    QVERIFY(!setop->exec());
+    QVERIFY(setop->hasError());
+    QCOMPARE(setop->errorString(), QStringLiteral("Plugin does not provide valid KScreen backend"));
+    QCOMPARE(finishedSpy.count(), 1);
+    QCOMPARE(setop->config(), config);
 }
 
 void TestInProcess::testConfigMonitor()
