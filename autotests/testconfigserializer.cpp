@@ -5,6 +5,10 @@
  *
  */
 
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
 #include <QObject>
 #include <QTest>
 #include <cstdint>
@@ -16,6 +20,17 @@
 #include "../src/screen.h"
 #include "../src/types.h"
 
+class SerializerEcho : public QObject {
+    Q_OBJECT
+    Q_CLASSINFO("D-Bus Interface", "org.kde.KScreen.SerializerTest")
+
+public Q_SLOTS:
+    QVariantMap echo(const QVariantMap &map)
+    {
+        return map;
+    }
+};
+
 class TestConfigSerializer : public QObject
 {
     Q_OBJECT
@@ -26,6 +41,60 @@ public:
     }
 
 private Q_SLOTS:
+    void initTestCase()
+    {
+        QVERIFY(QDBusConnection::sessionBus().registerObject(QStringLiteral("/SerializerTest"), &m_echo, QDBusConnection::ExportAllSlots));
+    }
+
+    void cleanupTestCase()
+    {
+        QDBusConnection::sessionBus().unregisterObject(QStringLiteral("/SerializerTest"));
+        QDBusConnection::disconnectFromBus(QStringLiteral("serializer-test"));
+    }
+
+    void testOutputEnabledRoundTrip_data()
+    {
+        QTest::addColumn<bool>("canDisable");
+        QTest::addColumn<bool>("enabled");
+        QTest::newRow("disable-supported-enabled") << true << true;
+        QTest::newRow("disable-supported-disabled") << true << false;
+        QTest::newRow("disable-unsupported-enable") << false << true;
+        QTest::newRow("disable-unsupported-disable") << false << false;
+    }
+
+    void testOutputEnabledRoundTrip()
+    {
+        QFETCH(bool, canDisable);
+        QFETCH(bool, enabled);
+        const KScreen::OutputPtr output(new KScreen::Output);
+        if (canDisable) {
+            output->setCapabilities(KScreen::Output::Capability::Disable);
+        }
+        output->setEnabled(enabled);
+        const QJsonObject json = KScreen::ConfigSerializer::serializeOutput(output);
+        QCOMPARE(json.contains(QStringLiteral("enabled")), canDisable);
+
+        // Use a separate connection so the nested map is actually marshalled over D-Bus.
+        const auto connection = QDBusConnection::connectToBus(QDBusConnection::SessionBus, QStringLiteral("serializer-test"));
+        QVERIFY(connection.isConnected());
+        auto message = QDBusMessage::createMethodCall(QDBusConnection::sessionBus().baseService(),
+                                                      QStringLiteral("/SerializerTest"),
+                                                      QStringLiteral("org.kde.KScreen.SerializerTest"),
+                                                      QStringLiteral("echo"));
+        message.setArguments({QVariantMap{{QStringLiteral("output"), json.toVariantMap()}}});
+        QDBusPendingCallWatcher watcher(connection.asyncCall(message));
+        QTRY_VERIFY(watcher.isFinished());
+        const QDBusPendingReply<QVariantMap> reply = watcher;
+        QVERIFY2(!reply.isError(), qPrintable(reply.error().message()));
+        const auto decoded = KScreen::ConfigSerializer::deserializeOutput(reply.value().value(QStringLiteral("output")).value<QDBusArgument>());
+        QVERIFY(decoded);
+        QCOMPARE(decoded->capabilities().testFlag(KScreen::Output::Capability::Disable), canDisable);
+        QCOMPARE(decoded->isEnabled(), !canDisable || enabled);
+        const auto clone = decoded->clone();
+        clone->setEnabled(false);
+        QCOMPARE(clone->isEnabled(), !canDisable);
+    }
+
     void testSerializePoint()
     {
         const QPoint point(42, 24);
@@ -127,6 +196,7 @@ private Q_SLOTS:
 
         KScreen::OutputPtr output(new KScreen::Output);
         output->setId(60);
+        output->setCapabilities(KScreen::Output::Capability::Disable);
         output->setName(QStringLiteral("LVDS-0"));
         output->setType(KScreen::Output::Panel);
         output->setIcon(QString());
@@ -173,6 +243,9 @@ private Q_SLOTS:
         QCOMPARE(sizeMm[QLatin1String("width")].toInt(), output->sizeMm().width());
         QCOMPARE(sizeMm[QLatin1String("height")].toInt(), output->sizeMm().height());
     }
+
+private:
+    SerializerEcho m_echo;
 };
 
 QTEST_MAIN(TestConfigSerializer)

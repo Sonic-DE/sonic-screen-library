@@ -5,6 +5,7 @@
  */
 
 #include <QObject>
+#include <QSignalSpy>
 #include <QTest>
 
 #include "../src/backendmanager_p.h"
@@ -35,6 +36,8 @@ private Q_SLOTS:
     void testInvalidMode();
     void cleanupTestCase();
     void testOutputPositionNormalization();
+    void testOutputDisableCapability();
+    void testOutputApplyDisableCapability();
 };
 
 ConfigPtr testScreenConfig::getConfig()
@@ -308,6 +311,73 @@ void testScreenConfig::testOutputPositionNormalization()
         setop->exec();
     }
     QCOMPARE(right->pos(), QPoint());
+}
+
+void testScreenConfig::testOutputDisableCapability()
+{
+    Output output;
+    QSignalSpy enabledSpy(&output, &Output::isEnabledChanged);
+    QSignalSpy capabilitiesSpy(&output, &Output::capabilitiesChanged);
+
+    QVERIFY(output.isEnabled());
+    output.setEnabled(false);
+    QVERIFY(output.isEnabled());
+    QCOMPARE(enabledSpy.count(), 0);
+
+    output.setCapabilities(Output::Capability::Disable);
+    QVERIFY(!output.isEnabled());
+    QCOMPARE(enabledSpy.count(), 1);
+    QCOMPARE(capabilitiesSpy.count(), 1);
+
+    output.setEnabled(true);
+    QVERIFY(output.isEnabled());
+    QCOMPARE(enabledSpy.count(), 2);
+    output.setEnabled(false);
+    QVERIFY(!output.isEnabled());
+    QCOMPARE(enabledSpy.count(), 3);
+
+    output.setCapabilities({});
+    QVERIFY(output.isEnabled());
+    QCOMPARE(enabledSpy.count(), 4);
+    QCOMPARE(capabilitiesSpy.count(), 2);
+    output.setCapabilities({});
+    QCOMPARE(enabledSpy.count(), 4);
+    QCOMPARE(capabilitiesSpy.count(), 2);
+}
+
+void testScreenConfig::testOutputApplyDisableCapability()
+{
+    Output output;
+    const OutputPtr other(new Output);
+    QSignalSpy enabledSpy(&output, &Output::isEnabledChanged);
+    QSignalSpy capabilitiesSpy(&output, &Output::capabilitiesChanged);
+
+    other->setCapabilities(Output::Capability::Disable);
+    other->setEnabled(true);
+    output.apply(other);
+    QVERIFY(output.isEnabled());
+    QCOMPARE(enabledSpy.count(), 0);
+    QCOMPARE(capabilitiesSpy.count(), 1);
+
+    other->setEnabled(false);
+    output.apply(other);
+    QVERIFY(!output.isEnabled());
+    QCOMPARE(enabledSpy.count(), 1);
+
+    other->setCapabilities({});
+    output.apply(other);
+    QVERIFY(output.isEnabled());
+    QCOMPARE(enabledSpy.count(), 2);
+    QCOMPARE(capabilitiesSpy.count(), 2);
+
+    other->setCapabilities(Output::Capability::Disable);
+    output.apply(other);
+    QVERIFY(!output.isEnabled());
+    QCOMPARE(enabledSpy.count(), 3);
+    QCOMPARE(capabilitiesSpy.count(), 3);
+    output.apply(other);
+    QCOMPARE(enabledSpy.count(), 3);
+    QCOMPARE(capabilitiesSpy.count(), 3);
 }
 
 QTEST_MAIN(testScreenConfig)

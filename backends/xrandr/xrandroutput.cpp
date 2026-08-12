@@ -455,6 +455,7 @@ KScreen::OutputPtr XRandROutput::toKScreenOutput() const
     const bool signalsBlocked = kscreenOutput->signalsBlocked();
     kscreenOutput->blockSignals(true);
     kscreenOutput->setId(m_id);
+    kscreenOutput->setCapabilities(KScreen::Output::Capability::Disable);
     kscreenOutput->setType(m_type);
     kscreenOutput->setSizeMm(QSize(m_widthMm, m_heightMm));
     kscreenOutput->setName(m_name);

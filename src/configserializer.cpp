@@ -81,7 +81,9 @@ QJsonObject ConfigSerializer::serializeOutput(const OutputPtr &output)
     obj[QLatin1String("preferredModes")] = serializeList(output->preferredModes());
     obj[QLatin1String("connected")] = output->isConnected();
     obj[QLatin1String("followPreferredMode")] = output->followPreferredMode();
-    obj[QLatin1String("enabled")] = output->isEnabled();
+    if (output->capabilities() & Output::Capability::Disable) {
+        obj[QLatin1String("enabled")] = output->isEnabled();
+    }
     obj[QLatin1String("priority")] = static_cast<int>(output->priority());
     obj[QLatin1String("clones")] = serializeList(output->clones());
     // obj[QLatin1String("edid")] = output->edid()->raw();
@@ -287,6 +289,9 @@ OutputPtr ConfigSerializer::deserializeOutput(const QDBusArgument &arg)
         } else if (key == QLatin1String("followPreferredMode")) {
             output->setFollowPreferredMode(value.toBool());
         } else if (key == QLatin1String("enabled")) {
+            // The enabled field is only serialized for outputs that support disabling.
+            // This also preserves compatibility with older XRandR backend messages.
+            output->setCapabilities(output->capabilities() | Output::Capability::Disable);
             output->setEnabled(value.toBool());
         } else if (key == QLatin1String("primary")) {
             // primary is deprecated, but if it appears in config for compatibility reason.
