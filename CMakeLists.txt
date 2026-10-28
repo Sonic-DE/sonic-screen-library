@@ -9,10 +9,9 @@ set(KDE_COMPILERSETTINGS_LEVEL "5.82")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${ECM_MODULE_PATH})
+set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
 include(KDEInstallDirs)
 include(KDECompilerSettings NO_POLICY_SCOPE)
 include(KDECMakeSettings)
@@ -30,13 +29,19 @@ include(KDEClangFormat)
 include(KDEGitCommitHooks)
 include(ECMDeprecationSettings)
 
-find_package(Qt6 ${QT_MIN_VERSION} CONFIG REQUIRED Core DBus Gui Test)
+find_package(Qt6 ${QT_MIN_VERSION} CONFIG REQUIRED Core DBus Gui Test WaylandClient)
 
-if (Qt6Gui_VERSION VERSION_GREATER_EQUAL "6.10.0")
-    find_package(Qt6GuiPrivate ${REQUIRED_QT_VERSION} REQUIRED NO_MODULE)
-endif()
+find_package(Qt6GuiPrivate ${QT_MIN_VERSION} REQUIRED NO_MODULE)
 
-find_package(XCB REQUIRED COMPONENTS XCB RANDR DPMS)
+find_package(WaylandScanner)
+
+find_package(PlasmaWaylandProtocols 1.23 CONFIG)
+set_package_properties(PlasmaWaylandProtocols PROPERTIES TYPE REQUIRED)
+
+find_package(Wayland 1.24 COMPONENTS Client)
+set_package_properties(Wayland PROPERTIES
+                       TYPE REQUIRED
+                      )
 
 option(BUILD_QCH "Build API documentation in QCH format (for e.g. Qt Assistant, Qt Creator & KDevelop)" OFF)
 add_feature_info(QCH ${BUILD_QCH} "API documentation in QCH format (for e.g. Qt Assistant, Qt Creator & KDevelop)")
@@ -54,11 +59,10 @@ ecm_setup_version(${PROJECT_VERSION} VARIABLE_PREFIX KSCREEN
                         SOVERSION 8)
 
 ecm_set_disabled_deprecation_versions(QT 5.15.0
-    KF 6.12.0
+    KF 6.27.0
 )
 
 add_subdirectory(src)
-add_subdirectory(backends)
 if(BUILD_TESTING)
    add_subdirectory(autotests)
    add_subdirectory(tests)
@@ -70,7 +74,6 @@ set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KF6Screen")
 
 # add clang-format target for all our real source files
 file(GLOB_RECURSE ALL_CLANG_FORMAT_SOURCE_FILES *.cpp *.h)
-list(FILTER ALL_CLANG_FORMAT_SOURCE_FILES EXCLUDE REGEX ".*\\.ccls-cache/.*")
 kde_clang_format(${ALL_CLANG_FORMAT_SOURCE_FILES})
 kde_configure_git_pre_commit_hook(CHECKS CLANG_FORMAT)
 
