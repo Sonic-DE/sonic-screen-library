@@ -29,6 +29,7 @@ private Q_SLOTS:
     void cleanupTestCase();
     void testContext();
     void testEnabled();
+    void testRotation();
     void testLog();
 
 private:
@@ -84,6 +85,30 @@ void TestLog::testEnabled()
     QCOMPARE(log->enabled(), true);
     QCOMPARE(log->logFile(), m_defaultLogFile);
 
+    delete log;
+}
+
+void TestLog::testRotation()
+{
+    auto log = Log::instance();
+    const QString last = m_defaultLogFile + QStringLiteral(".last");
+    QFile::remove(last);
+
+    // At the limit the file stays where it is.
+    QFile lf(m_defaultLogFile);
+    QVERIFY(lf.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    QVERIFY(lf.resize(2097152));
+    lf.close();
+    Log::log(QStringLiteral("at the limit"));
+    QVERIFY(!QFile::exists(last));
+
+    // Past it, the file moves to .last and a new one starts.
+    Log::log(QStringLiteral("past the limit"));
+    QVERIFY(QFileInfo(last).size() > 2097152);
+    QVERIFY(QFileInfo(m_defaultLogFile).size() < 4096);
+
+    QVERIFY(QFile::remove(last));
+    QVERIFY(lf.remove());
     delete log;
 }
 

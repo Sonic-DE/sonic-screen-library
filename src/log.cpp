@@ -116,7 +116,17 @@ void Log::log(const QString &msg, const QString &category)
     _cat.remove(QStringLiteral("kscreen."));
     const QString timestamp = QDateTime::currentDateTime().toString(QStringLiteral("dd.MM.yyyy hh:mm:ss.zzz"));
     QString logMessage = QStringLiteral("\n%1 ; %2 ; %3 : %4").arg(timestamp, _cat, instance()->context(), msg);
-    QFile file(instance()->logFile());
+
+    // Same limit and name as Sonic Logging's rotation.
+    constexpr qint64 rotationSizeBytes = 2097152;
+    const QString path = instance()->logFile();
+    if (QFileInfo(path).size() > rotationSizeBytes) {
+        const QString last = path + QStringLiteral(".last");
+        QFile::remove(last);
+        QFile::rename(path, last);
+    }
+
+    QFile file(path);
     if (!file.open(QIODevice::Append | QIODevice::Text)) {
         return;
     }
