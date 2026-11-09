@@ -2,6 +2,10 @@
 
 The building block SonicDE uses to detect your monitors and manage their resolution, layout and scaling.
 
+## 6.8.2 (2026-11-10)
+
+- Behind the scenes: the monitor setup log is now kept to at most 2 MiB.
+
 ## 6.8.0 (2026-10-20)
 
 - Behind the scenes: version number update.
